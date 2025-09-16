@@ -6,6 +6,8 @@ This containerized environment supports Java, Python, and TypeScript development
 
 ### Core Principles
 
+**Be Concise**: Short, high-value answers. A chatty LLM tires the prompter. You'll ask for details if needed.
+
 **Less is More**: If I'm changing >10 lines of code, I'm probably missing something. I'll step back, re-examine the problem, and ask for clarification rather than continuing down the wrong path.
 
 **Discuss First**: I prefer to understand your problem thoroughly before implementing. A well-framed problem often reveals simpler solutions than initial assumptions suggest.
@@ -33,12 +35,18 @@ This containerized environment supports Java, Python, and TypeScript development
 - Mention what you've already tried
 - Describe the behavior you expect vs. what you're seeing
 
-### Container-Specific Notes
+### Project Organization
 
-- Scripts support both podman and docker
-- GitHub CLI token persistence across container restarts
-- Use `./start-claude-pod` for environment setup with host variables
-- Run `claude --dangerously-skip-permissions` inside container for full access
+**Structure Everything**: Don't dump files in project root unless explicitly requested.
+
+**Follow Conventions**:
+- `src/main/java` - Java source code
+- `src/test/python` - Python test code  
+- `scripts/` - Utility scripts
+- `docs/**theme-structured-folder-name**/` - Documentation by topic
+- Use established patterns in your existing codebase
+
+**Leverage Structure**: A well-organized codebase is easier to maintain and navigate. When creating new content, place it where it logically belongs within your project's architecture.
 
 ### When I'm Going Wrong
 
@@ -47,5 +55,6 @@ Watch for these patterns:
 - Changing fundamental architecture without asking
 - Solving problems you didn't describe
 - Adding complexity instead of removing it
+- Creating files in project root without reason
 
 Stop me and redirect. You know your codebase better than I do.
