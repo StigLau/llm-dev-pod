@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# claude.sh - run Podman dev container with persistent Claude Code authentication
+
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+IMAGE="dev-env"
+NAME="claude-env"
+WORKDIR="$SCRIPT_DIR"  # mount the directory where the script is located
+
+# Determine the correct config directory path
+# Always use the host user's home directory for config persistence
+CLAUDE_CONFIG_DIR="$HOME/.claude-dev-config"
+
+CMD=${1:-bash}  # default command is bash if none provided
+
+# Create Claude config directory if it doesn't exist
+mkdir -p "$CLAUDE_CONFIG_DIR"
+
+echo "Claude Code Pro authentication will be persisted in: $CLAUDE_CONFIG_DIR"
+
+# Check if we need to copy existing authentication from host
+if [ -d "$HOME/.claude" ] && [ ! -f "$CLAUDE_CONFIG_DIR/.credentials.json" ]; then
+    echo "Found existing Claude authentication, copying to persistent location..."
+    cp -r "$HOME/.claude"/* "$CLAUDE_CONFIG_DIR/" 2>/dev/null || true
+    chmod 600 "$CLAUDE_CONFIG_DIR/.credentials.json" 2>/dev/null || true
+fi
+
+# Check if container is already running
+if podman ps --format "{{.Names}}" | grep -q "^$NAME\$"; then
+    echo "Attaching to running container..."
+    podman exec -it "$NAME" $CMD
+else
+    echo "Starting claude dev environment..."
+    podman run --rm -it \
+        -p 8080:8080 \
+        -p 3000:3000 \
+        -v "$WORKDIR":/workspace \
+        -v "$CLAUDE_CONFIG_DIR":/home/claude/.claude \
+        -v "$HOME/.aws:/home/claude/.aws" \
+        -e "AWS_REGION=${AWS_REGION}" \
+        -e "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" \
+        -e "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" \
+        --name "$NAME" \
+        -w /workspace \
+        "$IMAGE" \
+        bash -c "
+            # Ensure Claude config directory exists (permissions handled by host)
+            mkdir -p /home/claude/.claude
+            
+            # Copy existing auth if present and mount is empty
+            if [ ! -f /home/claude/.claude/.credentials.json ] && [ -f /home/claude/.claude-existing/.credentials.json ]; then
+                cp -r /home/claude/.claude-existing/* /home/claude/.claude/ 2>/dev/null || true
+            fi
+
+            # Run the requested command
+            exec $CMD
+        "
+fi
+
